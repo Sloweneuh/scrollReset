@@ -13,15 +13,27 @@ odoo.define('scrollReset.saveScrollPosition', function (require) {
          * @private
          * @param {MouseEvent} ev
          */
-        _onSaveScroll: function (ev) {
-            this._super.apply(this, arguments);
+        _onSave: function (ev) {
+            var result = this._super.apply(this, arguments);
+
             var scrollPosition = this.$(".o_form_sheet_bg").scrollTop();
             console.log("scrollPosition: " + scrollPosition);
+            console.log(this.$(".o_form_sheet_bg").scrollTop());
             var self = this;
-            this._onSave(ev);
-            return self.update({}, { reload: false }).then(function () {
-                self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
-            });
+            ev.stopPropagation(); // Prevent x2m lines to be auto-saved
+            this._disableButtons();
+            this.saveRecord().then(this._enableButtons.bind(this)).guardedCatch(this._enableButtons.bind(this));
+            setTimeout(function () {
+                if (scrollPosition > 0) {
+                    console.log("scrollPosition: " + scrollPosition);
+                    console.log(self.$(".o_form_sheet_bg").scrollTop());
+                    self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
+                    console.log("scrollPosition: " + scrollPosition);
+                    console.log(self.$(".o_form_sheet_bg").scrollTop());
+                }
+            }, 500);
+            return result;
+
         },
 
         /**
@@ -29,52 +41,31 @@ odoo.define('scrollReset.saveScrollPosition', function (require) {
          *
          * @private
          */
-        _onEditScroll: function () {
-            this._super.apply(this, arguments);
+        _onEdit: function () {
 
+            var result = this._super.apply(this, arguments);
             var scrollPosition = this.$(".o_form_sheet_bg").scrollTop();
             console.log("scrollPosition: " + scrollPosition);
-            var self = this;
-            this._onEdit();
-            return self.update({}, { reload: false }).then(function () {
-                self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
-            });
-        },
+            console.log(this.$(".o_form_sheet_bg").scrollTop());
 
-        /**
-         * Render buttons for the control panel.  The form view can be rendered in
-         * a dialog, and in that case, if we have buttons defined in the footer, we
-         * have to use them instead of the standard buttons.
-         *
-         * @override method from AbstractController
-         * @param {jQuery} [$node]
-         */
-        renderButtons: function ($node) {
-            var $footer = this.footerToButtons ? this.renderer.$el && this.renderer.$('footer') : null;
-            var mustRenderFooterButtons = $footer && $footer.length;
-            if ((this.defaultButtons && !this.$buttons) || mustRenderFooterButtons) {
-                this.$buttons = $('<div/>');
-                if (mustRenderFooterButtons) {
-                    this.$buttons.append($footer);
-                } else {
-                    this.$buttons.append(qweb.render("FormView.buttons", {widget: this}));
-                    this.$buttons.on('click', '.o_form_button_edit', this._onEdit.bind(this));
-                    this.$buttons.on('click', '.o_form_button_create', this._onCreate.bind(this));
-                    this.$buttons.on('click', '.o_form_button_save', this._onSave.bind(this));
-                    this.$buttons.on('click', '.o_form_button_cancel', this._onDiscard.bind(this));
-                    this._assignSaveCancelKeyboardBehavior(this.$buttons.find('.o_form_buttons_edit'));
-                    this.$buttons.find('.o_form_buttons_edit').tooltip({
-                        delay: {show: 200, hide:0},
-                        title: function(){
-                            return qweb.render('SaveCancelButton.tooltip');
-                        },
-                        trigger: 'manual',
-                    });
+            var self = this;
+            this._disableButtons();
+            // wait for potential pending changes to be saved (done with widgets
+            // allowing to edit in readonly)
+            this.mutex.getUnlockedDef()
+                .then(this._setMode.bind(this, 'edit'))
+                .then(this._enableButtons.bind(this))
+                .guardedCatch(this._enableButtons.bind(this));
+            setTimeout(function () {
+                if (scrollPosition > 0) {
+                    console.log("scrollPosition: " + scrollPosition);
+                    console.log(self.$(".o_form_sheet_bg").scrollTop());
+                    self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
+                    console.log("scrollPosition: " + scrollPosition);
+                    console.log(self.$(".o_form_sheet_bg").scrollTop());
                 }
-            }
-            if (this.$buttons && $node) {
-                this.$buttons.appendTo($node);
-            }
+            }, 500);
+            return result;
         },
     });
 });
