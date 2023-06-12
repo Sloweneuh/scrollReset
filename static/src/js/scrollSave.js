@@ -1,71 +1,66 @@
-odoo.define('scrollReset.saveScrollPosition', function (require) {
-    "use strict";
+odoo.define('scrollReset.saveScroll', function (require) {
+    'use strict';
 
-    var formController = require('web.FormController');
+    var FormRenderer = require('web.FormRenderer');
+    var FormController = require('web.FormController');
+
     var core = require('web.core');
-    var qweb = core.qweb;
 
-    formController.include({
+    const symbol = Symbol('form');
 
-        /**
-         * Called when the user wants to save the current record -> @see saveRecord
-         *
-         * @private
-         * @param {MouseEvent} ev
-         */
-        _onSave: function (ev) {
-            var result = this._super.apply(this, arguments);
 
-            var scrollPosition = this.$(".o_form_sheet_bg").scrollTop();
-            console.log("scrollPosition: " + scrollPosition);
-            console.log(this.$(".o_form_sheet_bg").scrollTop());
+    FormRenderer.include({
+        _renderView: function () {
+
+            var scrollPositionSheet = this.$(".o_form_sheet_bg").scrollTop();
+            var scrollPositionContent = this.$(".o_content").scrollTop();
             var self = this;
-            ev.stopPropagation(); // Prevent x2m lines to be auto-saved
-            this._disableButtons();
-            this.saveRecord().then(this._enableButtons.bind(this)).guardedCatch(this._enableButtons.bind(this));
-            setTimeout(function () {
-                if (scrollPosition > 0) {
-                    console.log("scrollPosition: " + scrollPosition);
-                    console.log(self.$(".o_form_sheet_bg").scrollTop());
-                    self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
-                    console.log("scrollPosition: " + scrollPosition);
-                    console.log(self.$(".o_form_sheet_bg").scrollTop());
+
+            console.log(scrollPositionSheet);
+            console.log(scrollPositionContent);
+
+            self._super.apply(self, arguments).then(function () {
+                if (scrollPositionSheet > 0) {
+                    self.$(".o_form_sheet_bg").scrollTop(scrollPositionSheet);
                 }
-            }, 500);
-            return result;
+                else if (scrollPositionContent > 0) {
+                    self.$(".o_content").scrollTop(scrollPositionContent);
+                }
+            });
 
         },
 
         /**
-         * Called when the user wants to edit the current record -> @see _setMode
-         *
-         * @private
-         */
-        _onEdit: function () {
+         
+Updates the form's $el with new content.*
+@private
+@see _renderView
+@param {JQuery} $newContent*/
 
-            var result = this._super.apply(this, arguments);
-            var scrollPosition = this.$(".o_form_sheet_bg").scrollTop();
-            console.log("scrollPosition: " + scrollPosition);
-            console.log(this.$(".o_form_sheet_bg").scrollTop());
+        // _updateView: function ($newContent) {
 
-            var self = this;
-            this._disableButtons();
-            // wait for potential pending changes to be saved (done with widgets
-            // allowing to edit in readonly)
-            this.mutex.getUnlockedDef()
-                .then(this._setMode.bind(this, 'edit'))
-                .then(this._enableButtons.bind(this))
-                .guardedCatch(this._enableButtons.bind(this));
-            setTimeout(function () {
-                if (scrollPosition > 0) {
-                    console.log("scrollPosition: " + scrollPosition);
-                    console.log(self.$(".o_form_sheet_bg").scrollTop());
-                    self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
-                    console.log("scrollPosition: " + scrollPosition);
-                    console.log(self.$(".o_form_sheet_bg").scrollTop());
-                }
-            }, 500);
-            return result;
-        },
+        //     // var result;
+        //     // var scrollPosition = this.$(".o_form_sheet_bg").scrollTop();
+        //     // var self = this;
+        //     // console.log(self._super);
+
+
+        //     // console.log(scrollPosition);
+        //     // self.$(".o_form_sheet_bg").scrollTop(scrollPosition);
+
+
+        //     //     if(self._super){
+        //     //         result = self._super.apply(self, arguments);
+
+        //     //     };
+
+
+        //     // // return result;
+        //     console.log(this);
+        //     this._super.apply(this, arguments);
+
+
+        // },
+
     });
 });
